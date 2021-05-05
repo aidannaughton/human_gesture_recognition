@@ -2,6 +2,8 @@ import mediapipe as mp
 import cv2
 import time
 
+DRAW_LINES = True
+
 mp_drawing = mp.solutions.drawing_utils
 mp_holistic = mp.solutions.holistic
 
@@ -36,26 +38,26 @@ with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=
 
             print(l_shoulder['Z'])
 
-            lsX = int(l_shoulder['X']*640)
-            lsY = int(l_shoulder['Y']*480)
-            leX = int(l_wrist['X']*640)
-            leY = int(l_wrist['Y']*480)
+            left_arm_sX = int(l_shoulder['X']*640)
+            left_arm_sY = int(l_shoulder['Y']*480)
+            left_arm_eX = int(l_wrist['X']*640)
+            left_arm_eY = int(l_wrist['Y']*480)
 
-            if lsX in range(0,640) and lsY in range(0,480) and leX in range(0,640) and leY in range(0,480):
-                cv2.line(image, (lsX,lsY), (leX,leY), (0,0,255), 2)
+            if left_arm_sX in range(0,640) and left_arm_sY in range(0,480) and left_arm_eX in range(0,640) and left_arm_eY in range(0,480) and DRAW_LINES:
+                cv2.line(image, (left_arm_sX,left_arm_sY), (left_arm_eX,left_arm_eY), (0,0,255), 2)
 
 
             # Drawing right arm line.
             r_shoulder = pose_keypoints[12]
             r_wrist = pose_keypoints[16]
 
-            rsX = int(r_shoulder['X']*640)
-            rsY = int(r_shoulder['Y']*480)
-            reX = int(r_wrist['X']*640)
-            reY = int(r_wrist['Y']*480)
+            right_arm_sX = int(r_shoulder['X']*640)
+            right_arm_sY = int(r_shoulder['Y']*480)
+            right_arm_eX = int(r_wrist['X']*640)
+            right_arm_eY = int(r_wrist['Y']*480)
 
-            if rsX in range(0,640) and rsY in range(0,480) and reX in range(0,640) and reY in range(0,480):
-                cv2.line(image, (rsX,rsY), (reX,reY), (255,0,0), 2)
+            if right_arm_sX in range(0,640) and right_arm_sY in range(0,480) and right_arm_eX in range(0,640) and right_arm_eY in range(0,480) and DRAW_LINES:
+                cv2.line(image, (right_arm_sX,right_arm_sY), (right_arm_eX,right_arm_eY), (255,0,0), 2)
 
 
 # Left Hand Keypoints
@@ -73,13 +75,13 @@ with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=
             l_finger_1 = left_hand_keypoints[5]
             l_finger_2 = left_hand_keypoints[8]
 
-            lsX = int(l_finger_1['X']*640)
-            lsY = int(l_finger_1['Y']*480)
-            leX = int(l_finger_2['X']*640)
-            leY = int(l_finger_2['Y']*480)
+            left_hand_sX = int(l_finger_1['X']*640)
+            left_hand_sY = int(l_finger_1['Y']*480)
+            left_hand_eX = int(l_finger_2['X']*640)
+            left_hand_eY = int(l_finger_2['Y']*480)
 
-            if lsX in range(0,640) and lsY in range(0,480) and leX in range(0,640) and leY in range(0,480):
-                cv2.line(image, (lsX,lsY), (leX,leY), (0,0,255), 2)
+            if left_hand_sX in range(0,640) and left_hand_sY in range(0,480) and left_hand_eX in range(0,640) and left_hand_eY in range(0,480):
+                cv2.line(image, (left_hand_sX,left_hand_sY), (left_hand_eX,left_hand_eY), (0,0,255), 2)
 
 
 # Right Hand Keypoints
@@ -97,13 +99,13 @@ with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=
             r_finger_1 = right_hand_keypoints[5]
             r_finger_2 = right_hand_keypoints[8]
 
-            rsX = int(r_finger_1['X']*640)
-            rsY = int(r_finger_1['Y']*480)
-            reX = int(r_finger_2['X']*640)
-            reY = int(r_finger_2['Y']*480)
+            right_hand_sX = int(r_finger_1['X']*640)
+            right_hand_sY = int(r_finger_1['Y']*480)
+            right_hand_eX = int(r_finger_2['X']*640)
+            right_hand_eY = int(r_finger_2['Y']*480)
 
-            if rsX in range(0,640) and rsY in range(0,480) and reX in range(0,640) and reY in range(0,480):
-                cv2.line(image, (rsX,rsY), (reX,reY), (255,0,0), 2)
+            if right_hand_sX in range(0,640) and right_hand_sY in range(0,480) and right_hand_eX in range(0,640) and right_hand_eY in range(0,480):
+                cv2.line(image, (right_hand_sX,right_hand_sY), (right_hand_eX,right_hand_eY), (255,0,0), 2)
 
         # Draw landmarks on image
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
