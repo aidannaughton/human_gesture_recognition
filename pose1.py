@@ -2,11 +2,13 @@ import mediapipe as mp
 import cv2
 import time
 import numpy as np
+import ast
+import threading
 
 class Pose_Estimator():
     def __init__(self):
         # Constants
-        self.MODE = "SMALL"
+        self.MODE = "MEDIUM"
         self.RED = (255, 0, 0)
         self.GREEN = (0, 255, 0)
         self.BLUE = (0, 0, 255)
@@ -15,6 +17,10 @@ class Pose_Estimator():
         self.DRAW_LINES = 1
         self.DRAW_POSE_LINES = 0
         self.DRAW_HAND_LINES = 0
+        self.DRAW_RECTANGLES = 0
+        self.ground_truth = None
+        self.running = False
+        self.coords = None
 
         # Feature detector
         self.mp_drawing = mp.solutions.drawing_utils
@@ -25,12 +31,130 @@ class Pose_Estimator():
         self.left_hand_keypoints = []
         self.right_hand_keypoints = []
 
-    def run(self):
+    """
+    This function is the main entry point to the program. This is where the user decides what to do.
+    """
+    def menu(self):
+        choice = -1
+        while True:
+            print("================================")
+            print("Exit program: 0")
+            print("Run pose estimation: 1")
+            print("Create ground truth: 2")
+            print("Save ground truth to file: 3")
+            print("Load ground truth from file: 4")
+            try:
+                choice = int(input())
+            except ValueError:
+                print("Error, please make a choice from the list!")
+                continue
+            if choice == 0:
+                break
+            elif choice == 1:
+                self.run_pose_estimation()
+            elif choice == 2:
+                self.create_ground_truth()
+            elif choice == 3:
+                if self.ground_truth is not None:
+                    self.save_ground_truth()
+                else:
+                    print("Error: No ground truth. Create one first.")
+            elif choice == 4:
+                self.load_ground_truth()
+            else:
+                print("Error, please make a choice from the list!")
+                continue
+
+    """
+    This function helps the user create the ground truth to use with the pose estimation.
+    The user will click on points in the frame and name them in the console.
+    Cease the operation by typing q with the camera feed window selected
+    """
+    def create_ground_truth(self):
+        self.ground_truth = {}
+        self.cap = cv2.VideoCapture(0)
+        while self.cap.isOpened():
+            self.ret, self.frame = self.cap.read()
+            cv2.imshow("Camera Feed", self.frame)
+            cv2.setMouseCallback("Camera Feed", self.click_event)
+            if cv2.waitKey(10) & 0xFF == ord('q'):
+                break
+
+        self.cap.release()
+        cv2.destroyAllWindows()
+        print(self.ground_truth)
+
+    """
+    This is a helper function for create_ground_truth, it listens for clicks in the camera feed window
+    """
+    def click_event(self, event, x, y, flags, params):
+        # Checking for left click
+        if event == cv2.EVENT_LBUTTONDOWN:
+            cv2.circle(self.frame, (x, y), 5, self.DOT_COLOR, 2)
+            cv2.imshow("Camera Feed", self.frame)
+            if self.MODE == "SMALL":
+                x = x//80
+                y = y//60
+            elif self.MODE == "MEDIUM":
+                x = x//160
+                y = y//120
+            print(x, y)
+            name = input("Enter the object name: ")
+            self.ground_truth[(x, y)] = name
+
+    """
+    This function saves the ground truth variable, if it exists, to the file specified by the user
+    """
+    def save_ground_truth(self):
+        file_name = input("Enter the ground truth file name to save: ")
+        file = open(file_name, 'w+')
+        file.write(str(self.ground_truth))
+        file.close()
+        print("Ground truth saved to:", file_name)
+
+    """
+    This function loads the ground truth from the file specified by the user, if it exists
+    """
+    def load_ground_truth(self):
+        file_name = input("Enter the ground truth file name to load: ")
+        try:
+            file = open(file_name, 'r')
+        except FileNotFoundError:
+            print("Error:", file_name, "does not exist!")
+            return
+        str = file.read()
+        if str is not '':
+            self.ground_truth = ast.literal_eval(str)
+        else:
+            print("Error: Nothing present in", file_name, "file!")
+        print("Ground truth loaded:", self.ground_truth)
+
+    """
+    This funciton checks the coords variable to see if they coorespond to anything in the ground_truth variable
+    """
+    def check_coords(self):
+        while self.running:
+            if self.coords and self.ground_truth:
+                if self.coords in self.ground_truth:
+                    print("You are pointing at: ", self.ground_truth[self.coords], self.coords)
+                print(self.coords)
+            time.sleep(1)
+
+    """
+    This function performs the pose estimation operations. It reads the camera, makes predictions, and updates internal variables based on the human pose.
+    """
+    def run_pose_estimation(self):
+        self.running = True
         self.cap = cv2.VideoCapture(0)
         with self.mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
+            self.thread = threading.Thread(target=self.check_coords)
+            self.thread.start()
             while self.cap.isOpened():
                 self.ret, self.frame = self.cap.read()
                 self.image = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
+
+                # Mirror the image for "selfie mode"
+                # self.image = cv2.flip(self.image, 1)
 
                 self.results = holistic.process(self.image)
 
@@ -44,17 +168,16 @@ class Pose_Estimator():
 
                 # Check if pointing to a certain place?
                 if self.check_arms_for_pointing() == "LEFT":
-                    self.determine_pointing("LEFT")
+                    self.coords = self.determine_pointing("LEFT")
                 elif self.check_arms_for_pointing() == "RIGHT":
-                    self.determine_pointing("RIGHT")
-                else:
-                    print("Not pointing")
+                    self.coords = self.determine_pointing("RIGHT")
 
                 # Show image
                 cv2.imshow("Camera Feed", self.image)
                 if cv2.waitKey(10) & 0xFF == ord('q'):
+                    self.running = False
                     break
-
+            self.thread.join()
             self.cap.release()
             cv2.destroyAllWindows()
 
@@ -179,19 +302,20 @@ class Pose_Estimator():
 
     """
     This function determines if the left hand or arm is pointing.
+    Returns: coordinates to which the user is pointing
     """
     def determine_pointing(self, arm):
         if arm == "LEFT":
             if self.results.left_hand_landmarks and self.left_finger_length >= 40:
                 # Base the pointing direction on the finger.
-                print(self.is_pointing(self.left_hand_sX, self.left_hand_sY, self.left_hand_eX, self.left_hand_eY))
+                return self.is_pointing(self.left_hand_sX, self.left_hand_sY, self.left_hand_eX, self.left_hand_eY)
             elif self.results.pose_landmarks and self.left_arm_length >= 150:
                 # Otherwise base the pointing direction on the arm.
-                print(self.is_pointing(self.left_arm_sX, self.left_arm_sY, self.left_arm_eX, self.left_arm_eY))
+                return self.is_pointing(self.left_arm_sX, self.left_arm_sY, self.left_arm_eX, self.left_arm_eY)
             else:
-                print("Not pointing")
+                return "Not pointing"
         else:
-            print("right arm is pointing")
+            return "right arm is pointing"
 
     """
     This function determines where on the edge of the screen the line formed by the two points will cross
@@ -264,44 +388,55 @@ class Pose_Estimator():
             if pointing == "LEFT":
                 x_pos = _x2//80
                 y_pos = y_out2//60
-                cv2.rectangle(self.image, (x_pos*80,y_pos*60), ((x_pos+1)*80, (y_pos+1)*60), self.RED, 2)
+                p1 = (x_pos*80,y_pos*60)
+                p2 = ((x_pos+1)*80, (y_pos+1)*60)
             elif pointing == "RIGHT":
                 x_pos = _x//80
+                x_pos -= 1
                 y_pos = y_out//60
-                cv2.rectangle(self.image, (x_pos*80,y_pos*60), ((x_pos-1)*80, (y_pos+1)*60), self.RED, 2)
+                p1 = ((x_pos+1)*80,y_pos*60)
+                p2 = (x_pos*80, (y_pos+1)*60)
             elif pointing == "UP":
                 x_pos = x_out2//80
                 y_pos = _y2//60
-                cv2.rectangle(self.image, (x_pos*80,y_pos*60), ((x_pos+1)*80, (y_pos+1)*60), self.RED, 2)
+                p1 = (x_pos*80,y_pos*60)
+                p2 = ((x_pos+1)*80, (y_pos+1)*60)
             elif pointing == "DOWN":
                 x_pos = x_out//80
                 y_pos = _y//60
-                cv2.rectangle(self.image, (x_pos*80,y_pos*60), ((x_pos+1)*80, (y_pos-1)*60), self.RED, 2)
+                y_pos -= 1
+                p1 = (x_pos*80,(y_pos+1)*60)
+                p2 = ((x_pos+1)*80, y_pos*60)
         elif self.MODE == "MEDIUM":
             if pointing == "LEFT":
                 x_pos = _x2//160
                 y_pos = y_out2//120
-                cv2.rectangle(self.image, (x_pos*160,y_pos*120), ((x_pos+1)*160, (y_pos+1)*120), self.RED, 2)
+                p1 = (x_pos*160,y_pos*120)
+                p2 = ((x_pos+1)*160, (y_pos+1)*120)
             elif pointing == "RIGHT":
                 x_pos = _x//160
+                x_pos -= 1
                 y_pos = y_out//120
-                cv2.rectangle(self.image, (x_pos*160,y_pos*120), ((x_pos-1)*160, (y_pos+1)*120), self.RED, 2)
+                p1 = ((x_pos+1)*160,y_pos*120)
+                p2 = (x_pos*160, (y_pos+1)*120)
             elif pointing == "UP":
                 x_pos = x_out2//160
                 y_pos = _y2//120
-                cv2.rectangle(self.image, (x_pos*160,y_pos*120), ((x_pos+1)*160, (y_pos+1)*120), self.RED, 2)
+                p1 = (x_pos*160,y_pos*120)
+                p2 = ((x_pos+1)*160, (y_pos+1)*120)
             elif pointing == "DOWN":
                 x_pos = x_out//160
                 y_pos = _y//120
-                cv2.rectangle(self.image, (x_pos*160,y_pos*120), ((x_pos+1)*160, (y_pos-1)*120), self.RED, 2)
-
+                y_pos -= 1
+                p1 = (x_pos*160,(y_pos+1)*120)
+                p2 = ((x_pos+1)*160, y_pos*120)
+        if self.DRAW_RECTANGLES:
+            cv2.rectangle(self.image, p1, p2, self.RED, 2)
         return (x_pos,y_pos)
-
-
 
 def main():
     est = Pose_Estimator()
-    est.run()
+    est.menu()
 
 if __name__ == "__main__":
     main()
