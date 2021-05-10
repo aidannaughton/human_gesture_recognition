@@ -5,7 +5,7 @@ import numpy as np
 import ast
 import threading
 
-class Pose_Estimator():
+class PoseEstimator():
     def __init__(self):
         # Constants
         self.MODE = "MEDIUM"
@@ -173,6 +173,7 @@ class Pose_Estimator():
                     self.coords = self.determine_pointing("RIGHT")
 
                 # Show image
+                self.image = cv2.cvtColor(self.image, cv2.COLOR_RGB2BGR)
                 cv2.imshow("Camera Feed", self.image)
                 if cv2.waitKey(10) & 0xFF == ord('q'):
                     self.running = False
@@ -285,7 +286,7 @@ class Pose_Estimator():
                     cv2.line(self.image, (self.right_hand_sX,self.right_hand_sY), (self.right_hand_eX,self.right_hand_eY), self.LINE_COLOR, 2)
 
         # Draw skeleton
-        self.image = cv2.cvtColor(self.image, cv2.COLOR_RGB2BGR)
+
         if self.DRAW_HAND_LINES:
             self.mp_drawing.draw_landmarks(self.image, self.results.right_hand_landmarks, self.mp_holistic.HAND_CONNECTIONS)
             self.mp_drawing.draw_landmarks(self.image, self.results.left_hand_landmarks, self.mp_holistic.HAND_CONNECTIONS)
@@ -435,7 +436,7 @@ class Pose_Estimator():
         return (x_pos,y_pos)
 
 def main():
-    est = Pose_Estimator()
+    est = PoseEstimator()
     est.menu()
 
 if __name__ == "__main__":
