@@ -7,20 +7,27 @@ import threading
 
 class PoseEstimator():
     def __init__(self):
-        # Constants
-        self.MODE = "MEDIUM"
+        # CV2 Constants
         self.RED = (255, 0, 0)
         self.GREEN = (0, 255, 0)
         self.BLUE = (0, 0, 255)
         self.DOT_COLOR = self.BLUE
         self.LINE_COLOR = self.BLUE
+
+        # Drawing flags
         self.DRAW_LINES = 1
         self.DRAW_POSE_LINES = 0
         self.DRAW_HAND_LINES = 0
-        self.DRAW_RECTANGLES = 0
+        self.DRAW_CIRCLES = 1
+
+        # Estimator constants
+        self.NUM_MIDPOINTS = 25
         self.ground_truth = None
+        self.midpoints = None
         self.running = False
-        self.coords = None
+        self.ARM_THRESHOLD = None
+        self.FINGER_THRESHOLD = None
+        self.POINTING_THRESHOLD = None
 
         # Feature detector
         self.mp_drawing = mp.solutions.drawing_utils
@@ -35,9 +42,9 @@ class PoseEstimator():
     This function is the main entry point to the program. This is where the user decides what to do.
     """
     def menu(self):
-        choice = -1
         while True:
             print("================================")
+            print("Current Ground Truth:", self.ground_truth)
             print("Exit program: 0")
             print("Run pose estimation: 1")
             print("Create ground truth: 2")
@@ -92,12 +99,8 @@ class PoseEstimator():
         if event == cv2.EVENT_LBUTTONDOWN:
             cv2.circle(self.frame, (x, y), 5, self.DOT_COLOR, 2)
             cv2.imshow("Camera Feed", self.frame)
-            if self.MODE == "SMALL":
-                x = x//80
-                y = y//60
-            elif self.MODE == "MEDIUM":
-                x = x//160
-                y = y//120
+            x = x//80
+            y = y//60
             print(x, y)
             name = input("Enter the object name: ")
             self.ground_truth[(x, y)] = name
@@ -127,17 +130,21 @@ class PoseEstimator():
             self.ground_truth = ast.literal_eval(str)
         else:
             print("Error: Nothing present in", file_name, "file!")
-        print("Ground truth loaded:", self.ground_truth)
+        print("Ground truth loaded!")
 
     """
     This funciton checks the coords variable to see if they coorespond to anything in the ground_truth variable
     """
     def check_coords(self):
         while self.running:
-            if self.coords and self.ground_truth:
-                if self.coords in self.ground_truth:
-                    print("You are pointing at: ", self.ground_truth[self.coords], self.coords)
-                print(self.coords)
+            if self.midpoints and self.ground_truth:
+                objects = []
+                for point in self.midpoints:
+                    if point in self.ground_truth:
+                        objects.append(self.ground_truth[point])
+                obj_set = set(objects)
+                if obj_set:
+                    print("You are pointing at: ", [item for item in obj_set])
             time.sleep(1)
 
     """
@@ -150,27 +157,17 @@ class PoseEstimator():
             self.thread = threading.Thread(target=self.check_coords)
             self.thread.start()
             while self.cap.isOpened():
+                # Get image from camera
                 self.ret, self.frame = self.cap.read()
                 self.image = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
 
-                # Mirror the image for "selfie mode"
-                # self.image = cv2.flip(self.image, 1)
-
+                # Make predictions of human pose
                 self.results = holistic.process(self.image)
-
-                # Call the get keypoints functions
                 self.get_keypoints()
-                # self.get_left_hand_keypoints()
-                # self.get_right_hand_keypoints()
+                self.draw_lines()
 
-                # Call draw line function
-                # self.draw_lines()
-
-                # Check if pointing to a certain place?
-                if self.check_arms_for_pointing() == "LEFT":
-                    self.coords = self.determine_pointing("LEFT")
-                elif self.check_arms_for_pointing() == "RIGHT":
-                    self.coords = self.determine_pointing("RIGHT")
+                # Check if pointing to a certain place
+                self.midpoints = self.determine_pointing()
 
                 # Show image
                 self.image = cv2.cvtColor(self.image, cv2.COLOR_RGB2BGR)
@@ -199,6 +196,7 @@ class PoseEstimator():
             # Left Arm
             self.l_shoulder = self.pose_keypoints[11]
             self.l_wrist = self.pose_keypoints[15]
+            self.l_hip = self.pose_keypoints[23]
 
             self.left_arm_sX = int(self.l_shoulder['X']*640)
             self.left_arm_sY = int(self.l_shoulder['Y']*480)
@@ -210,6 +208,7 @@ class PoseEstimator():
             # Right Arm
             self.r_shoulder = self.pose_keypoints[12]
             self.r_wrist = self.pose_keypoints[16]
+            self.r_hip = self.pose_keypoints[24]
 
             self.right_arm_sX = int(self.r_shoulder['X']*640)
             self.right_arm_sY = int(self.r_shoulder['Y']*480)
@@ -217,6 +216,16 @@ class PoseEstimator():
             self.right_arm_eY = int(self.r_wrist['Y']*480)
 
             self.right_arm_length = np.linalg.norm(np.array([self.right_arm_sX,self.right_arm_sY])-np.array([self.right_arm_eX,self.right_arm_eY]))
+
+            # Pointing Metrics
+            self.shoulder_distance = np.linalg.norm(np.array([self.l_shoulder['X']*640,self.l_shoulder['Y']*480])-np.array([self.r_shoulder['X']*640,self.r_shoulder['Y']*480]))
+            self.l_hand_distance = np.linalg.norm(np.array([self.l_wrist['X']*640,self.l_wrist['Y']*480])-np.array([self.l_hip['X']*640,self.l_hip['Y']*480]))
+            self.r_hand_distance = np.linalg.norm(np.array([self.r_wrist['X']*640,self.r_wrist['Y']*480])-np.array([self.r_hip['X']*640,self.r_hip['Y']*480]))
+
+            self.ARM_THRESHOLD = self.shoulder_distance*.7
+            self.FINGER_THRESHOLD = self.shoulder_distance/10
+            self.POINTING_THRESHOLD = self.shoulder_distance/1.5
+
 
         if self.results.left_hand_landmarks:
             self.left_hand_keypoints = []
@@ -267,62 +276,74 @@ class PoseEstimator():
     def draw_lines(self):
         # Draw recognized pointing lines
         if self.DRAW_LINES:
-            if self.results.pose_landmarks:
-                # Left arm
-                if self.left_arm_sX in range(0,640) and self.left_arm_sY in range(0,480) and self.left_arm_eX in range(0,640) and self.left_arm_eY in range(0,480) and self.left_arm_length > 150:
-                    cv2.line(self.image, (self.left_arm_sX,self.left_arm_sY), (self.left_arm_eX,self.left_arm_eY), self.LINE_COLOR, 2)
-                # Right arm
-                if self.right_arm_sX in range(0,640) and self.right_arm_sY in range(0,480) and self.right_arm_eX in range(0,640) and self.right_arm_eY in range(0,480) and self.right_arm_length > 150:
-                    cv2.line(self.image, (self.right_arm_sX,self.right_arm_sY), (self.right_arm_eX,self.right_arm_eY), self.LINE_COLOR, 2)
-
-            if self.results.left_hand_landmarks:
-                # Left hand
-                if self.left_hand_sX in range(0,640) and self.left_hand_sY in range(0,480) and self.left_hand_eX in range(0,640) and self.left_hand_eY in range(0,480) and self.left_finger_length >= 40:
-                    cv2.line(self.image, (self.left_hand_sX,self.left_hand_sY), (self.left_hand_eX,self.left_hand_eY), self.LINE_COLOR, 2)
-
-            if self.results.right_hand_landmarks:
-                # Right hand
-                if self.right_hand_sX in range(0,640) and self.right_hand_sY in range(0,480) and self.right_hand_eX in range(0,640) and self.right_hand_eY in range(0,480) and self.right_finger_length >= 40:
-                    cv2.line(self.image, (self.right_hand_sX,self.right_hand_sY), (self.right_hand_eX,self.right_hand_eY), self.LINE_COLOR, 2)
+            # Check if left hand is pointing
+            if self.l_hand_distance >= self.POINTING_THRESHOLD:
+                if self.results.pose_landmarks:
+                    # Left arm
+                    if self.left_arm_sX in range(0,640) and self.left_arm_sY in range(0,480) and self.left_arm_eX in range(0,640) and self.left_arm_eY in range(0,480) and self.left_arm_length > self.ARM_THRESHOLD:
+                        cv2.line(self.image, (self.left_arm_sX,self.left_arm_sY), (self.left_arm_eX,self.left_arm_eY), self.LINE_COLOR, 2)
+                if self.results.left_hand_landmarks:
+                    # Left hand
+                    if self.left_hand_sX in range(0,640) and self.left_hand_sY in range(0,480) and self.left_hand_eX in range(0,640) and self.left_hand_eY in range(0,480) and self.left_finger_length >= self.FINGER_THRESHOLD:
+                        cv2.line(self.image, (self.left_hand_sX,self.left_hand_sY), (self.left_hand_eX,self.left_hand_eY), self.LINE_COLOR, 2)
+            # Check if right hand is pointing
+            if self.r_hand_distance >= self.POINTING_THRESHOLD:
+                if self.results.pose_landmarks:
+                    # Right arm
+                    if self.right_arm_sX in range(0,640) and self.right_arm_sY in range(0,480) and self.right_arm_eX in range(0,640) and self.right_arm_eY in range(0,480) and self.right_arm_length > self.ARM_THRESHOLD:
+                        cv2.line(self.image, (self.right_arm_sX,self.right_arm_sY), (self.right_arm_eX,self.right_arm_eY), self.LINE_COLOR, 2)
+                if self.results.right_hand_landmarks:
+                    # Right hand
+                    if self.right_hand_sX in range(0,640) and self.right_hand_sY in range(0,480) and self.right_hand_eX in range(0,640) and self.right_hand_eY in range(0,480) and self.right_finger_length >= self.FINGER_THRESHOLD:
+                        cv2.line(self.image, (self.right_hand_sX,self.right_hand_sY), (self.right_hand_eX,self.right_hand_eY), self.LINE_COLOR, 2)
 
         # Draw skeleton
-
         if self.DRAW_HAND_LINES:
             self.mp_drawing.draw_landmarks(self.image, self.results.right_hand_landmarks, self.mp_holistic.HAND_CONNECTIONS)
             self.mp_drawing.draw_landmarks(self.image, self.results.left_hand_landmarks, self.mp_holistic.HAND_CONNECTIONS)
         if self.DRAW_POSE_LINES:
             self.mp_drawing.draw_landmarks(self.image, self.results.pose_landmarks, self.mp_holistic.POSE_CONNECTIONS)
 
-    """
-    This function determines which arm should checked for pointing, if any
-    returns: string: LEFT or RIGHT or NONE
-    """
-    def check_arms_for_pointing(self):
-        return "LEFT"
-
 
     """
-    This function determines if the left hand or arm is pointing.
+    This function determines if the provided hand or arm is pointing.
     Returns: coordinates to which the user is pointing
     """
-    def determine_pointing(self, arm):
-        if arm == "LEFT":
-            if self.results.left_hand_landmarks and self.left_finger_length >= 40:
-                # Base the pointing direction on the finger.
-                return self.is_pointing(self.left_hand_sX, self.left_hand_sY, self.left_hand_eX, self.left_hand_eY)
-            elif self.results.pose_landmarks and self.left_arm_length >= 150:
-                # Otherwise base the pointing direction on the arm.
-                return self.is_pointing(self.left_arm_sX, self.left_arm_sY, self.left_arm_eX, self.left_arm_eY)
-            else:
-                return "Not pointing"
+    def determine_pointing(self):
+        if self.l_hand_distance >= self.POINTING_THRESHOLD and int(self.l_wrist['X']*640) in range(0,640) and int(self.l_wrist['Y']*480) in range(0,480):
+            arm = "LEFT"
+        elif self.r_hand_distance >= self.POINTING_THRESHOLD and int(self.r_wrist['X']*640) in range(0,640) and int(self.r_wrist['Y']*480) in range(0,480):
+            arm = "RIGHT"
         else:
-            return "right arm is pointing"
+            arm = "NONE"
+
+        if arm == "LEFT":
+            if self.results.left_hand_landmarks and self.left_finger_length >= self.FINGER_THRESHOLD:
+                # Base the pointing direction on the finger.
+                return self.get_pointing_coords(self.left_hand_sX, self.left_hand_sY, self.left_hand_eX, self.left_hand_eY)
+            elif self.results.pose_landmarks and self.left_arm_length >= self.ARM_THRESHOLD:
+                # Otherwise base the pointing direction on the arm.
+                return self.get_pointing_coords(self.left_arm_sX, self.left_arm_sY, self.left_arm_eX, self.left_arm_eY)
+            else:
+                return [] # Not pointing at anything
+        elif arm =="RIGHT":
+            if self.results.right_hand_landmarks and self.right_finger_length >= self.FINGER_THRESHOLD:
+                # Base the pointing direction on the finger.
+                return self.get_pointing_coords(self.right_hand_sX, self.right_hand_sY, self.right_hand_eX, self.right_hand_eY)
+            elif self.results.pose_landmarks and self.right_arm_length >= self.ARM_THRESHOLD:
+                # Otherwise base the pointing direction on the arm.
+                return self.get_pointing_coords(self.right_arm_sX, self.right_arm_sY, self.right_arm_eX, self.right_arm_eY)
+            else:
+                return [] # Not pointing at anything
+        else:
+            return [] # Not pointing at anything
 
     """
     This function determines where on the edge of the screen the line formed by the two points will cross
-    returns: coordinate pair that determines where the user is pointing
+    returns: a list of points along the line the user is pointing - number of points determined by self.NUM_MIDPOINTS
     """
-    def is_pointing(self, x1, y1, x2, y2):
+    def get_pointing_coords(self, x1, y1, x2, y2):
+        # Check which direction the user is pointing
         if x1 < x2:
             pointing_right = True
         else:
@@ -333,7 +354,7 @@ class PoseEstimator():
         else:
             pointing_down = False
 
-
+        # Find the slope of the line
         if (x2-x1) == 0.0:
             m = (y2-y1)/0.001
         else:
@@ -341,6 +362,7 @@ class PoseEstimator():
         if m == 0.0:
             m = 0.001
 
+        # Determine the possible edge of screen points corresponding to the line function above
         _x = 640
         _y = 480
         _x2 = 0
@@ -350,90 +372,59 @@ class PoseEstimator():
         y_out2 = int((m*(_x2-x1))+y1)
         x_out2 = int(((_y2-y1)/m)+x1)
 
+        # Find the point on the edge of the screen the user is pointing to
         if pointing_right:
             if pointing_down:
                 # Could be pointing right, or down
                 if y_out in range(0,480):
-                    cv2.circle(self.image, (_x, y_out), 5, self.DOT_COLOR, 2) # RIGHT
-                    pointing = "RIGHT"
+                    x, y = _x, y_out
+                    dx = x2 - _x
                 else:
-                    cv2.circle(self.image, (x_out, _y), 5, self.DOT_COLOR, 2) # DOWN
-                    pointing = "DOWN"
+                    x, y = x_out, _y
+                    dx = x2 - x_out
             else:
                 # Could be pointing right, or up
                 if y_out in range(0,480):
-                    cv2.circle(self.image, (_x, y_out), 5, self.DOT_COLOR, 2) # RIGHT
-                    pointing = "RIGHT"
+                    x, y = _x, y_out
+                    dx = x2 - _x
                 else:
-                    cv2.circle(self.image, (x_out2, _y2), 5, self.DOT_COLOR, 2) # UP
-                    pointing = "UP"
+                    x, y = x_out2, _y2
+                    dx = x2 - x_out2
         else:
             if pointing_down:
                 # Could be pointing left, or down
                 if y_out2 in range(0,480):
-                    cv2.circle(self.image, (_x2, y_out2), 5, self.DOT_COLOR, 2) # LEFT
-                    pointing = "LEFT"
+                    x, y = _x2, y_out2
+                    dx = x2 - _x2
                 else:
-                    cv2.circle(self.image, (x_out, _y), 5, self.DOT_COLOR, 2) # DOWN
-                    pointing = "DOWN"
+                    x, y = x_out, _y
+                    dx = x2 - x_out
             else:
                 # Could be pointing left, or up
                 if y_out2 in range(0,480):
-                    cv2.circle(self.image, (_x2, y_out2), 5, self.DOT_COLOR, 2) # LEFT
-                    pointing = "LEFT"
+                    x, y = _x2, y_out2
+                    dx = x2 - _x2
                 else:
-                    cv2.circle(self.image, (x_out2, _y2), 5, self.DOT_COLOR, 2) # UP
-                    pointing = "UP"
+                    x, y = x_out2, _y2
+                    dx = x2 - x_out2
 
-        if self.MODE == "SMALL":
-            if pointing == "LEFT":
-                x_pos = _x2//80
-                y_pos = y_out2//60
-                p1 = (x_pos*80,y_pos*60)
-                p2 = ((x_pos+1)*80, (y_pos+1)*60)
-            elif pointing == "RIGHT":
-                x_pos = _x//80
-                x_pos -= 1
-                y_pos = y_out//60
-                p1 = ((x_pos+1)*80,y_pos*60)
-                p2 = (x_pos*80, (y_pos+1)*60)
-            elif pointing == "UP":
-                x_pos = x_out2//80
-                y_pos = _y2//60
-                p1 = (x_pos*80,y_pos*60)
-                p2 = ((x_pos+1)*80, (y_pos+1)*60)
-            elif pointing == "DOWN":
-                x_pos = x_out//80
-                y_pos = _y//60
-                y_pos -= 1
-                p1 = (x_pos*80,(y_pos+1)*60)
-                p2 = ((x_pos+1)*80, y_pos*60)
-        elif self.MODE == "MEDIUM":
-            if pointing == "LEFT":
-                x_pos = _x2//160
-                y_pos = y_out2//120
-                p1 = (x_pos*160,y_pos*120)
-                p2 = ((x_pos+1)*160, (y_pos+1)*120)
-            elif pointing == "RIGHT":
-                x_pos = _x//160
-                x_pos -= 1
-                y_pos = y_out//120
-                p1 = ((x_pos+1)*160,y_pos*120)
-                p2 = (x_pos*160, (y_pos+1)*120)
-            elif pointing == "UP":
-                x_pos = x_out2//160
-                y_pos = _y2//120
-                p1 = (x_pos*160,y_pos*120)
-                p2 = ((x_pos+1)*160, (y_pos+1)*120)
-            elif pointing == "DOWN":
-                x_pos = x_out//160
-                y_pos = _y//120
-                y_pos -= 1
-                p1 = (x_pos*160,(y_pos+1)*120)
-                p2 = ((x_pos+1)*160, y_pos*120)
-        if self.DRAW_RECTANGLES:
-            cv2.rectangle(self.image, p1, p2, self.RED, 2)
-        return (x_pos,y_pos)
+        # self.midpoints = [(x,y)]
+        self.midpoints = []
+
+        if self.DRAW_CIRCLES:
+            cv2.circle(self.image, (x, y), 5, self.DOT_COLOR, 2)
+
+        # Create other circles based on d distance
+        d = dx/self.NUM_MIDPOINTS
+        for i in range(self.NUM_MIDPOINTS):
+            mid_x, mid_y = int(x2-(d*(i))), int((m*((x2-(d*(i)))-x1))+y1)
+            mid_x_cell = mid_x//80
+            mid_y_cell = mid_y//60
+            self.midpoints.append((mid_x_cell,mid_y_cell))
+            if self.DRAW_CIRCLES:
+                cv2.circle(self.image, (mid_x, mid_y), 5, (0,255,0), 2) # Draw midpoint circles
+
+        return self.midpoints
 
 def main():
     est = PoseEstimator()
