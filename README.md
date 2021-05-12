@@ -23,10 +23,10 @@ The cv_bridge package must be built with python 3.6, as it is natively built in 
 
 # Install dependencies
 sudo apt-get install python-catkin-tools python3-dev python3-catkin-pkg-modules python3-numpy python3-yaml ros-kinetic-cv-bridge
-    # `python-catkin-tools` is needed for catkin tool
-    # `python3-dev` and `python3-catkin-pkg-modules` is needed to build cv_bridge
-    # `python3-numpy` and `python3-yaml` is cv_bridge dependencies
-    # `ros-kinetic-cv-bridge` is needed to install a lot of cv_bridge deps. Probaply you already have it installed.
+    `python-catkin-tools` is needed for catkin tool
+    `python3-dev` and `python3-catkin-pkg-modules` is needed to build cv_bridge
+    `python3-numpy` and `python3-yaml` is cv_bridge dependencies
+    `ros-kinetic-cv-bridge` is needed to install a lot of cv_bridge deps. Probaply you already have it installed.
 
 # Create catkin workspace
 mkdir cv_bridge_ws
