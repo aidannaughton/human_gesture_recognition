@@ -34,48 +34,61 @@ sudo apt-get install python-catkin-tools python3-dev python3-catkin-pkg-modules 
 
 Create catkin workspace
 ```
-`mkdir cv_bridge_ws`
-`cd cv_bridge_ws`
-`catkin init`
+mkdir cv_bridge_ws
+cd cv_bridge_ws
+catkin init
 ```
 
 Instruct catkin to set cmake variables
-`catkin config -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so`
+```
+catkin config -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so
+```
 
 Instruct catkin to install built packages into install place. It is $CATKIN_WORKSPACE/install folder
-`catkin config --install`
+```catkin config --install```
 
 Clone cv_bridge src
-`git clone https://github.com/ros-perception/vision_opencv.git src/vision_opencv`
+```git clone https://github.com/ros-perception/vision_opencv.git src/vision_opencv```
 
 Find version of cv_bridge in your repository
-`apt-cache show ros-melodic-cv-bridge | grep Version`
+```apt-cache show ros-melodic-cv-bridge | grep Version```
 
 Checkout right version in git repo. In our case it is 1.13.0
-`cd src/vision_opencv/`
-`git checkout 1.13.0`
-`cd ../../`
+```
+cd src/vision_opencv/
+git checkout 1.13.0
+cd ../../
+```
 
 Build
-`catkin build cv_bridge`
+```
+catkin build cv_bridge
+```
 
 Navigate to your standard catkin workspace, make and source the setup
-`cd [Path to your ws]`
-`catkin_make`
-`source devel/setup.bash`
+```
+cd [Path to your ws]
+catkin_make
+source devel/setup.bash
+```
 
 Extend environment with the python 3.6 cv_bridge_ws package
-`source [Path to cv_bridge_ws]/install/setup.bash --extend`
+```
+source [Path to cv_bridge_ws]/install/setup.bash --extend
+```
 
 You can test to see if it worked properly by running a python shell
-`python3`
-`>>> from cv_bridge.boost.cv_bridge_boost import getCvType`
+```python3
+>>> from cv_bridge.boost.cv_bridge_boost import getCvType
+```
 
 ## Running the project
 To run the project navigate to ROS/catkin_ws and run the following commands
-    `source devel/setup.bash`
-    `source ../cv_bridge_ws/install/setup.bash --extend`
-    `roslaunch pose_estimation pose_estimation.launch`
+    ```
+    source devel/setup.bash
+    source ../cv_bridge_ws/install/setup.bash --extend
+    roslaunch pose_estimation pose_estimation.launch
+    ```
 
 ## To use the project itself:
 option 1 will run the pose estimation and pointing recognition
