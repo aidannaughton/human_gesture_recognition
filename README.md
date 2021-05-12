@@ -4,7 +4,7 @@ The standalone python version is found in the standalone folder.
 - Run it by calling `python3 pose_estimation.py`
 
 The ROS integration is found in the ros folder.
-- A copt of the package itself is in `ROS/pose_estimation`
+- A copy of the package itself is in `ROS/pose_estimation`
 - Additionally there are two catkin workspaces
         `catkin_ws` is the complete project.
         `cv_bridge_ws` is the workspace used to build cv_bridge for python 3.6
@@ -27,10 +27,10 @@ The cv_bridge package must be built with python 3.6, as it is natively built in 
 ### Building cv_bridge:
 Install dependencies
 sudo apt-get install python-catkin-tools python3-dev python3-catkin-pkg-modules python3-numpy python3-yaml ros-kinetic-cv-bridge
-    - `python-catkin-tools` is needed for catkin tool
-    - `python3-dev` and `python3-catkin-pkg-modules` is needed to build cv_bridge
-    - `python3-numpy` and `python3-yaml` is cv_bridge dependencies
-    - `ros-kinetic-cv-bridge` is needed to install a lot of cv_bridge deps. Probaply you already have it installed.
+- `python-catkin-tools` is needed for catkin tool
+- `python3-dev` and `python3-catkin-pkg-modules` is needed to build cv_bridge
+- `python3-numpy` and `python3-yaml` is cv_bridge dependencies
+- `ros-kinetic-cv-bridge` is needed to install a lot of cv_bridge deps. Probaply you already have it installed.
 
 Create catkin workspace
 `mkdir cv_bridge_ws`
