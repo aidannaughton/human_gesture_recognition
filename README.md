@@ -33,9 +33,11 @@ sudo apt-get install python-catkin-tools python3-dev python3-catkin-pkg-modules 
 - `ros-kinetic-cv-bridge` is needed to install a lot of cv_bridge deps. Probaply you already have it installed.
 
 Create catkin workspace
+```
 `mkdir cv_bridge_ws`
 `cd cv_bridge_ws`
 `catkin init`
+```
 
 Instruct catkin to set cmake variables
 `catkin config -DPYTHON_EXECUTABLE=/usr/bin/python3 -DPYTHON_INCLUDE_DIR=/usr/include/python3.6m -DPYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so`
