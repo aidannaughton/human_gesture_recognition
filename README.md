@@ -6,8 +6,8 @@ The standalone python version is found in the standalone folder.
 The ROS integration is found in the ros folder.
 - A copy of the package itself is in `ROS/pose_estimation`
 - Additionally there are two catkin workspaces
-  -`catkin_ws` is the complete project.
-  -`cv_bridge_ws` is the workspace used to build cv_bridge for python 3.6
+  - `catkin_ws` is the complete project.
+  - `cv_bridge_ws` is the workspace used to build cv_bridge for python 3.6
 
 This package was greated with rospy in ros melodic (Ubuntu 18.04)
 The pose_estimation package requires the packages cv_camera and cv_bridge.
