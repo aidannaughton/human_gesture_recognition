@@ -1,0 +1,6 @@
+<launch>
+
+  <node pkg="cv_camera" name="cam" type="cv_camera_node"/>
+  <node pkg="pose_estimation" name="pose" type="pose.py" output="screen" required="true"/>
+
+</launch>

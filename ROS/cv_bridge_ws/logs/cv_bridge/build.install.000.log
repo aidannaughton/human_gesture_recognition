@@ -1,0 +1,59 @@
+[  0%] Built target geometry_msgs_generate_messages_py
+[  0%] Built target std_msgs_generate_messages_py
+[  0%] Built target std_msgs_generate_messages_nodejs
+[  0%] Built target std_msgs_generate_messages_eus
+[  0%] Built target sensor_msgs_generate_messages_lisp
+[  0%] Built target geometry_msgs_generate_messages_nodejs
+[  0%] Built target std_msgs_generate_messages_cpp
+[  0%] Built target geometry_msgs_generate_messages_eus
+[  0%] Built target sensor_msgs_generate_messages_py
+[  0%] Built target geometry_msgs_generate_messages_lisp
+[  0%] Built target std_msgs_generate_messages_lisp
+[  0%] Built target sensor_msgs_generate_messages_cpp
+[  0%] Built target sensor_msgs_generate_messages_eus
+[  0%] Built target sensor_msgs_generate_messages_nodejs
+[  0%] Built target geometry_msgs_generate_messages_cpp
+[ 50%] Built target cv_bridge
+[100%] Built target cv_bridge_boost
+[36mInstall the project...[0m
+-- Install configuration: ""
+-- Installing: /home/aidan/Desktop/cv_bridge_ws/install/_setup_util.py
+-- Installing: /home/aidan/Desktop/cv_bridge_ws/install/env.sh
+-- Installing: /home/aidan/Desktop/cv_bridge_ws/install/setup.bash
+-- Installing: /home/aidan/Desktop/cv_bridge_ws/install/local_setup.bash
+-- Installing: /home/aidan/Desktop/cv_bridge_ws/install/setup.sh
+-- Installing: /home/aidan/Desktop/cv_bridge_ws/install/local_setup.sh
+-- Installing: /home/aidan/Desktop/cv_bridge_ws/install/setup.zsh
+-- Installing: /home/aidan/Desktop/cv_bridge_ws/install/local_setup.zsh
+-- Installing: /home/aidan/Desktop/cv_bridge_ws/install/.rosinstall
+-- Installing: /home/aidan/Desktop/cv_bridge_ws/install/lib/pkgconfig/cv_bridge.pc
+-- Installing: /home/aidan/Desktop/cv_bridge_ws/install/share/cv_bridge/cmake/cv_bridge-extras.cmake
+-- Installing: /home/aidan/Desktop/cv_bridge_ws/install/share/cv_bridge/cmake/cv_bridgeConfig.cmake
+-- Installing: /home/aidan/Desktop/cv_bridge_ws/install/share/cv_bridge/cmake/cv_bridgeConfig-version.cmake
+-- Installing: /home/aidan/Desktop/cv_bridge_ws/install/share/cv_bridge/package.xml
++ cd /home/aidan/Desktop/cv_bridge_ws/src/vision_opencv/cv_bridge
++ mkdir -p /home/aidan/Desktop/cv_bridge_ws/install/lib/python3/dist-packages
++ /usr/bin/env PYTHONPATH=/home/aidan/Desktop/cv_bridge_ws/install/lib/python3/dist-packages:/home/aidan/Desktop/cv_bridge_ws/build/cv_bridge/lib/python3/dist-packages:/opt/ros/melodic/lib/python2.7/dist-packages CATKIN_BINARY_DIR=/home/aidan/Desktop/cv_bridge_ws/build/cv_bridge /usr/bin/python3 /home/aidan/Desktop/cv_bridge_ws/src/vision_opencv/cv_bridge/setup.py build --build-base /home/aidan/Desktop/cv_bridge_ws/build/cv_bridge install --root=/ --install-layout=deb --prefix=/home/aidan/Desktop/cv_bridge_ws/install --install-scripts=/home/aidan/Desktop/cv_bridge_ws/install/bin
+running build
+running build_py
+creating /home/aidan/Desktop/cv_bridge_ws/build/cv_bridge/lib
+creating /home/aidan/Desktop/cv_bridge_ws/build/cv_bridge/lib/cv_bridge
+copying python/cv_bridge/core.py -> /home/aidan/Desktop/cv_bridge_ws/build/cv_bridge/lib/cv_bridge
+copying python/cv_bridge/__init__.py -> /home/aidan/Desktop/cv_bridge_ws/build/cv_bridge/lib/cv_bridge
+running install
+running install_lib
+creating /home/aidan/Desktop/cv_bridge_ws/install/lib/python3/dist-packages/cv_bridge
+copying /home/aidan/Desktop/cv_bridge_ws/build/cv_bridge/lib/cv_bridge/core.py -> /home/aidan/Desktop/cv_bridge_ws/install/lib/python3/dist-packages/cv_bridge
+copying /home/aidan/Desktop/cv_bridge_ws/build/cv_bridge/lib/cv_bridge/__init__.py -> /home/aidan/Desktop/cv_bridge_ws/install/lib/python3/dist-packages/cv_bridge
+byte-compiling /home/aidan/Desktop/cv_bridge_ws/install/lib/python3/dist-packages/cv_bridge/core.py to core.cpython-36.pyc
+byte-compiling /home/aidan/Desktop/cv_bridge_ws/install/lib/python3/dist-packages/cv_bridge/__init__.py to __init__.cpython-36.pyc
+running install_egg_info
+Writing /home/aidan/Desktop/cv_bridge_ws/install/lib/python3/dist-packages/cv_bridge-1.13.0.egg-info
+-- Installing: /home/aidan/Desktop/cv_bridge_ws/install/include/cv_bridge
+-- Installing: /home/aidan/Desktop/cv_bridge_ws/install/include/cv_bridge/cv_bridge.h
+-- Installing: /home/aidan/Desktop/cv_bridge_ws/install/include/cv_bridge/rgb_colors.h
+-- Installing: /home/aidan/Desktop/cv_bridge_ws/install/lib/python3/dist-packages/cv_bridge/boost/__init__.py
+-- Installing: /home/aidan/Desktop/cv_bridge_ws/install/lib/libcv_bridge.so
+-- Set runtime path of "/home/aidan/Desktop/cv_bridge_ws/install/lib/libcv_bridge.so" to ""
+-- Installing: /home/aidan/Desktop/cv_bridge_ws/install/lib/python3/dist-packages/cv_bridge/boost/cv_bridge_boost.so
+-- Set runtime path of "/home/aidan/Desktop/cv_bridge_ws/install/lib/python3/dist-packages/cv_bridge/boost/cv_bridge_boost.so" to ""

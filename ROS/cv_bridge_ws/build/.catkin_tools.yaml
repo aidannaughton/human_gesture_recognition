@@ -1,0 +1,6 @@
+devel_space: /home/aidan/Desktop/cv_bridge_ws/devel
+install: true
+install_space: /home/aidan/Desktop/cv_bridge_ws/install
+profile: default
+source_space: /home/aidan/Desktop/cv_bridge_ws/src
+workspace: /home/aidan/Desktop/cv_bridge_ws
