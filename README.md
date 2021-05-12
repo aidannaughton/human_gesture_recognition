@@ -1,3 +1,4 @@
+# README
 The standalone python version is found in the standalone folder. 
     Run it by calling python3 pose_estimation.py
 
