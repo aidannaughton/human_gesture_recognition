@@ -97,7 +97,7 @@ roslaunch pose_estimation pose_estimation.launch
 ```
 
 ## To use the project itself:
-option 1 will run the pose estimation and pointing recognition
-option 2 will assist in the creation of a ground truth variable (NOTE: there is no ground truth at the start of the program)
-option 3 will save the ground truth if it exists to the specified file (NOTE: these files are stored in /home/{your username}/.ros)
-option 4 will load the ground truth from a specified file if it exists
+- option 1 will run the pose estimation and pointing recognition
+- option 2 will assist in the creation of a ground truth variable (NOTE: there is no ground truth at the start of the program)
+- option 3 will save the ground truth if it exists to the specified file (NOTE: these files are stored in /home/{your username}/.ros)
+- option 4 will load the ground truth from a specified file if it exists
